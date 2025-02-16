@@ -11,7 +11,7 @@ model User {
   id        Int       @id @default(autoincrement())
   email     String    @unique
   password  String
-  role      String
+  role      String    @default("user")
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   lastLogin DateTime?
@@ -26,9 +26,9 @@ model User {
   reportsHandled       Report[]           @relation("ResolvedBy")
   follows              Follow[]           @relation("FollowedBy")
   followers            Follow[]           @relation("Following")
-  ReportModerators     ReportModerators[]
-  NotificationReceiver Notification[]     @relation("NotificationReceiver")
-  NotificationTrigger  Notification[]     @relation("NotificationTrigger")
+  reportModerators     ReportModerators[]
+  notificationReceiver Notification[]     @relation("NotificationReceiver")
+  notificationTrigger  Notification[]     @relation("NotificationTrigger")
 }
 
 model Profile {
@@ -62,7 +62,7 @@ model Category {
 model Tag {
   id             Int              @id @default(autoincrement())
   name           String           @unique
-  PublicationTag PublicationTag[]
+  publicationTag PublicationTag[]
 }
 
 model Publication {
@@ -72,7 +72,6 @@ model Publication {
   content      String
   headerImgUrl String?
   authorId     Int
-  category     String?
   status       String
   views        Int       @default(0)
   updatedAt    DateTime?
@@ -83,10 +82,10 @@ model Publication {
   likes        Like[]
   bookmarks    Bookmark[]
   tags         PublicationTag[]
-  Category     Category?        @relation(fields: [categoryName], references: [name])
+  category     Category?        @relation(fields: [categoryName], references: [name])
   categoryName String?
-  Notification Notification[]
-  Report       Report[]
+  notification Notification[]
+  report       Report[]
 }
 
 model PublicationTag {
@@ -115,8 +114,8 @@ model Comment {
   parentComment Comment?       @relation("Parent", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies       Comment[]      @relation("Parent")
   Like          Like[]
-  Notification  Notification[]
-  Report        Report[]
+  notification  Notification[]
+  report        Report[]
 }
 
 model Like {
@@ -164,7 +163,7 @@ model Report {
   reportedPublication Publication?       @relation(fields: [reportedPublicationId], references: [id], onDelete: Cascade)
   reportedComment     Comment?           @relation(fields: [reportedCommentId], references: [id], onDelete: Cascade)
   resolvedBy          User?              @relation("ResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
-  ReportModerators    ReportModerators[]
+  reportModerators    ReportModerators[]
 }
 
 model ReportModerators {
