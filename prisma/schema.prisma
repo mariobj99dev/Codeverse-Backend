@@ -17,7 +17,18 @@ model User {
   lastLogin DateTime?
   isBanned  Boolean   @default(false)
 
-  profile Profile?
+  profile              Profile?
+  publications         Publication[]
+  comments             Comment[]
+  likes                Like[]
+  bookmarks            Bookmark[]
+  reportsSent          Report[]           @relation("Reporter")
+  reportsHandled       Report[]           @relation("ResolvedBy")
+  follows              Follow[]           @relation("FollowedBy")
+  followers            Follow[]           @relation("Following")
+  ReportModerators     ReportModerators[]
+  NotificationReceiver Notification[]     @relation("NotificationReceiver")
+  NotificationTrigger  Notification[]     @relation("NotificationTrigger")
 }
 
 model Profile {
@@ -29,4 +40,150 @@ model Profile {
   preferences  Json?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  userId     Int
+  followedId Int
+
+  user     User @relation("Following", fields: [userId], references: [id], onDelete: Cascade)
+  followed User @relation("FollowedBy", fields: [followedId], references: [id], onDelete: Cascade)
+
+  @@id([userId, followedId])
+}
+
+model Category {
+  name        String  @id
+  description String?
+
+  publications Publication[]
+}
+
+model Tag {
+  id             Int              @id @default(autoincrement())
+  name           String           @unique
+  PublicationTag PublicationTag[]
+}
+
+model Publication {
+  id           Int       @id @default(autoincrement())
+  title        String
+  createdAt    DateTime  @default(now())
+  content      String
+  headerImgUrl String?
+  authorId     Int
+  category     String?
+  status       String
+  views        Int       @default(0)
+  updatedAt    DateTime?
+  isFeatured   Boolean   @default(false)
+
+  author       User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments     Comment[]
+  likes        Like[]
+  bookmarks    Bookmark[]
+  tags         PublicationTag[]
+  Category     Category?        @relation(fields: [categoryName], references: [name])
+  categoryName String?
+  Notification Notification[]
+  Report       Report[]
+}
+
+model PublicationTag {
+  publicationId Int
+  tagId         Int
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, tagId])
+}
+
+model Comment {
+  id              Int       @id @default(autoincrement())
+  authorId        Int
+  publicationId   Int
+  parentCommentId Int?
+  createdAt       DateTime  @default(now())
+  content         String
+  likes           Int       @default(0)
+  editedAt        DateTime?
+  isDeleted       Boolean   @default(false)
+
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  publication   Publication    @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  parentComment Comment?       @relation("Parent", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       Comment[]      @relation("Parent")
+  Like          Like[]
+  Notification  Notification[]
+  Report        Report[]
+}
+
+model Like {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  publicationId Int?
+  commentId     Int?
+  createdAt     DateTime @default(now())
+  reactionType  String?
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  comment     Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  triggerUserId Int?
+  publicationId Int?
+  commentId     Int?
+  type          String
+  isRead        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  metadata      Json?
+  deletedAt     DateTime?
+
+  user        User         @relation("NotificationReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  triggerUser User?        @relation("NotificationTrigger", fields: [triggerUserId], references: [id], onDelete: SetNull)
+  publication Publication? @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  comment     Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id                    Int       @id @default(autoincrement())
+  reporterId            Int
+  reportedPublicationId Int?
+  reportedCommentId     Int?
+  reason                String
+  status                String
+  resolvedById          Int?
+  resolvedAt            DateTime?
+
+  reporter            User               @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedPublication Publication?       @relation(fields: [reportedPublicationId], references: [id], onDelete: Cascade)
+  reportedComment     Comment?           @relation(fields: [reportedCommentId], references: [id], onDelete: Cascade)
+  resolvedBy          User?              @relation("ResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  ReportModerators    ReportModerators[]
+}
+
+model ReportModerators {
+  reportId    Int
+  moderatorId Int
+
+  report    Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  moderator User   @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+
+  @@id([reportId, moderatorId])
+}
+
+model Bookmark {
+  publicationId Int
+  userId        Int
+  createdAt     DateTime @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([publicationId, userId])
 }
